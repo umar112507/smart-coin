@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Coin - Superadmin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Rubik', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to right, #43cea2, #185a9d);
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    header h2 {
+      color: #185a9d;
+    }
+
+    .logout {
+      background: #185a9d;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .container {
+      padding: 2rem;
+    }
+
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+    }
+
+    h3 {
+      color: #185a9d;
+      margin-bottom: 0.5rem;
+    }
+
+    .user-card {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    button {
+      background: #43cea2;
+      color: white;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      margin-top: 6px;
+      cursor: pointer;
+    }
+
+    input, select {
+      padding: 6px;
+      margin-right: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .stats {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 1rem;
+    }
+
+    .stat-box {
+      background: #185a9d;
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      flex: 1;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>👑 Superadmin Panel</h2>
+    <button class="logout" onclick="logout()">Chiqish</button>
+  </header>
+
+  <div class="container">
+
+    <!-- STATISTIKA -->
+    <div class="stats">
+      <div class="stat-box">
+        <h3>👨‍🏫 O‘qituvchilar</h3>
+        <p id="teacherCount">0</p>
+      </div>
+      <div class="stat-box">
+        <h3>👨‍🎓 O‘quvchilar</h3>
+        <p id="studentCount">0</p>
+      </div>
+    </div>
+
+    <!-- TASDIQLANMAGAN O‘QITUVCHILAR -->
+    <div class="section">
+      <h3>🟡 Tasdiqlanmagan o‘qituvchilar</h3>
+      <div id="pendingTeachers">Yuklanmoqda...</div>
+    </div>
+
+    <!-- COIN BERISH -->
+    <div class="section">
+      <h3>💰 Coin berish</h3>
+      <input type="text" id="coinUser" placeholder="Username" />
+      <input type="number" id="coinAmount" placeholder="Miqdor" />
+      <input type="text" id="coinReason" placeholder="Sabab" />
+      <button onclick="giveCoin()">Yuborish</button>
+    </div>
+
+  </div>
+
+  <script>
+    const API = "http://localhost:3000";
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!user || user.role !== "superadmin") {
+      alert("Avval login qiling");
+      window.location.href = "index.html";
+    }
+
+    async function loadDashboard() {
+      const res = await fetch(`${API}/users`);
+      const users = await res.json();
+
+      const teachers = users.filter(u => u.role === "teacher");
+      const students = users.filter(u => u.role === "student");
+      const pending = teachers.filter(t => !t.approved);
+
+      document.getElementById("teacherCount").textContent = teachers.length;
+      document.getElementById("studentCount").textContent = students.length;
+
+      const container = document.getElementById("pendingTeachers");
+      container.innerHTML = "";
+
+      if (pending.length === 0) {
+        container.innerHTML = "<p>Barcha o‘qituvchilar tasdiqlangan</p>";
+        return;
+      }
+
+      pending.forEach(t => {
+        const div = document.createElement("div");
+        div.className = "user-card";
+        div.innerHTML = `
+          <strong>${t.username}</strong><br/>
+          ID: ${t.teacherId} <br/>
+          <button onclick="approveTeacher('${t.username}')">Tasdiqlash</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function approveTeacher(username) {
+      const res = await fetch(`${API}/approve-teacher`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username })
+      });
+
+      const data = await res.json();
+      alert(data.msg || "Tasdiqlandi");
+      loadDashboard();
+    }
+
+    async function giveCoin() {
+      const username = document.getElementById("coinUser").value;
+      const amount = parseInt(document.getElementById("coinAmount").value);
+      const reason = document.getElementById("coinReason").value;
+
+      if (!username || isNaN(amount)) {
+        return alert("To‘liq to‘ldiring");
+      }
+
+      const res = await fetch(`${API}/coin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, amount, reason })
+      });
+
+      const data = await res.json();
+      alert(data.msg || "Coin berildi");
+    }
+
+    function logout() {
+      localStorage.removeItem("user");
+      window.location.href = "index.html";
+    }
+
+    loadDashboard();
+  </script>
+
+</body>
+</html>
+<script src="superadmin.js"></script>

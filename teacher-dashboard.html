@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Coin - Teacher Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Rubik', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to right, #fc466b, #3f5efb);
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    header h2 {
+      color: #3f5efb;
+    }
+
+    .logout {
+      background: #3f5efb;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .container {
+      padding: 2rem;
+    }
+
+    .student {
+      background: white;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+    }
+
+    .student h3 {
+      margin: 0 0 8px;
+    }
+
+    .attendance {
+      margin-top: 10px;
+    }
+
+    select, button {
+      padding: 8px;
+      margin-top: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .coinSelect {
+      display: none;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>👩‍🏫 Teacher Dashboard</h2>
+    <button class="logout" onclick="logout()">Chiqish</button>
+  </header>
+
+  <div class="container" id="studentsList">
+    <!-- JS orqali o‘quvchilar chiqadi -->
+  </div>
+
+  <script>
+    const API = "http://localhost:3000";
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!user || user.role !== "teacher") {
+      alert("Avval login qiling");
+      window.location.href = "index.html";
+    }
+
+    async function loadStudents() {
+      const res = await fetch(`${API}/students-by-teacher?teacherId=${user.teacherId}`);
+      const students = await res.json();
+
+      const list = document.getElementById("studentsList");
+      list.innerHTML = "";
+
+      students.forEach(stu => {
+        const div = document.createElement("div");
+        div.className = "student";
+        div.innerHTML = `
+          <h3>${stu.username}</h3>
+          <label><input type="checkbox" onchange="toggleSelect('${stu.username}', this)"> Darsga keldi</label>
+          <div class="coinSelect" id="coin-${stu.username}">
+            <label for="reward-${stu.username}">Sovrin yoki jarima:</label>
+            <select id="reward-${stu.username}">
+              <option value="" disabled selected>Tanlang</option>
+              <option value="1">+1: Vazifa to‘liq</option>
+              <option value="1b">+1: Vaqtida keldi</option>
+              <option value="3">+3: 3 marta qatnashdi</option>
+              <option value="1c">+1: Faol ishtirok</option>
+              <option value="-1a">-1: Vazifa yo‘q</option>
+              <option value="-1b">-1: Passiv</option>
+              <option value="-1c">-1: Odobsiz xulq</option>
+            </select>
+            <button onclick="giveCoin('${stu.username}')">Berish</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function toggleSelect(username, checkbox) {
+      const menu = document.getElementById("coin-" + username);
+      if (checkbox.checked) {
+        menu.style.display = "block";
+      } else {
+        menu.style.display = "none";
+      }
+    }
+
+    async function giveCoin(username) {
+      const select = document.getElementById("reward-" + username);
+      const value = select.value;
+
+      if (!value) return alert("Biror tanlov qiling");
+
+      let amount = 0;
+      let reason = "";
+
+      switch (value) {
+        case "1": amount = 1; reason = "Vazifa to‘liq bajarildi"; break;
+        case "1b": amount = 1; reason = "Vaqtida keldi"; break;
+        case "3": amount = 3; reason = "3 marta qatnashgan"; break;
+        case "1c": amount = 1; reason = "Faol ishtirok"; break;
+        case "-1a": amount = -1; reason = "Vazifa bajarmadi"; break;
+        case "-1b": amount = -1; reason = "Passiv ishtirok"; break;
+        case "-1c": amount = -1; reason = "Odobsiz xulq"; break;
+      }
+
+      // oldin coin olish
+      const historyRes = await fetch(`${API}/coin-history?username=${username}`);
+      const history = await historyRes.json();
+      const balance = history.reduce((sum, h) => sum + h.amount, 0);
+      if (balance <= 0 && amount < 0) {
+        return alert("O‘quvchining balansi 0 dan kamaytirilmaydi!");
+      }
+
+      const res = await fetch(`${API}/coin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, amount, reason })
+      });
+
+      const data = await res.json();
+      alert(data.msg || "Coin belgilandi");
+
+      loadStudents(); // qayta yuklaymiz
+    }
+
+    function logout() {
+      localStorage.removeItem("user");
+      window.location.href = "index.html";
+    }
+
+    loadStudents();
+  </script>
+</body>
+</html>

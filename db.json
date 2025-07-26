@@ -1,0 +1,36 @@
+{
+  "users": [
+    {
+      "username": "everestadmin",
+      "password": "2222jjjj",
+      "role": "superadmin"
+    },
+    {
+      "username": "teacher1",
+      "password": "1234",
+      "role": "teacher",
+      "teacherId": 1,
+      "approved": true
+    },
+    {
+      "username": "student1",
+      "password": "1234",
+      "role": "student",
+      "teacherId": 1
+    }
+  ],
+  "coinHistory": [
+    {
+      "username": "student1",
+      "amount": 1,
+      "reason": "Vazifa to‘liq",
+      "date": "2025-07-26T12:34:56.000Z"
+    },
+    {
+      "username": "student1",
+      "amount": -1,
+      "reason": "Passiv ishtirok",
+      "date": "2025-07-26T14:22:10.000Z"
+    }
+  ]
+}

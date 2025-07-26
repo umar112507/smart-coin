@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Coin - Student Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Rubik', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    header h2 {
+      color: #0072ff;
+    }
+
+    .logout {
+      background: #0072ff;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .container {
+      padding: 2rem;
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      transition: 0.3s;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+    }
+
+    .card h3 {
+      margin-bottom: 0.5rem;
+      color: #0072ff;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      padding: 4px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>👨‍🎓 Student Dashboard</h2>
+    <button class="logout" onclick="logout()">Chiqish</button>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h3>💰 Coin Balansi</h3>
+      <p><strong id="coinBalance">0</strong> tanga</p>
+    </div>
+
+    <div class="card">
+      <h3>📜 Tanga Tarixi</h3>
+      <ul id="coinHistoryList">
+        <li>Yuklanmoqda...</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>👥 Sinfdoshlaringiz</h3>
+      <ul id="classmatesList">
+        <li>Yuklanmoqda...</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>ℹ️ Siz haqingizda</h3>
+      <p><strong>Login:</strong> <span id="infoUser"></span></p>
+      <p><strong>Teacher ID:</strong> <span id="infoTeacherId"></span></p>
+    </div>
+  </div>
+
+  <script>
+    const API = "http://localhost:3000";
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (!user || user.role !== "student") {
+      alert("Avval login qiling");
+      window.location.href = "index.html";
+    }
+
+    document.getElementById("infoUser").textContent = user.username;
+
+    // Balans va tarixni olish
+    async function loadStudentData() {
+      try {
+        const resUser = await fetch(`${API}/coin-history?username=${user.username}`);
+        const history = await resUser.json();
+
+        const resAll = await fetch(`${API}/students-by-teacher?teacherId=${user.teacherId}`);
+        const classmates = await resAll.json();
+
+        const coinBalance = history.reduce((sum, item) => sum + item.amount, 0);
+        document.getElementById("coinBalance").textContent = coinBalance;
+
+        // Tarix
+        const historyList = document.getElementById("coinHistoryList");
+        historyList.innerHTML = history.length === 0
+          ? "<li>Tarix topilmadi</li>"
+          : history.map(item => `<li>${item.reason} (${item.amount > 0 ? '+' : ''}${item.amount})</li>`).join('');
+
+        // Sinfdoshlar
+        document.getElementById("infoTeacherId").textContent = user.teacherId || "Noma'lum";
+
+        const classmatesList = document.getElementById("classmatesList");
+        classmatesList.innerHTML = classmates
+          .filter(s => s.username !== user.username)
+          .map(s => `<li>${s.username}</li>`)
+          .join('');
+
+      } catch (err) {
+        alert("Xatolik: " + err.message);
+      }
+    }
+
+    loadStudentData();
+
+    function logout() {
+      localStorage.removeItem("user");
+      window.location.href = "index.html";
+    }
+  </script>
+
+</body>
+</html>
+<script src="student.js"></script>
+

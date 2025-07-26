@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="uz">
+>
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Coin — Kirish / Ro‘yxatdan o‘tish</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+    }
+
+    .container {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 30px;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 25px;
+      font-size: 28px;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+    }
+
+    select {
+      background-color: white;
+      color: black;
+    }
+
+    button {
+      background-color: #00e676;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #00c853;
+    }
+
+    #studentTeacherId {
+      display: none;
+    }
+
+    .small-text {
+      font-size: 14px;
+      margin: 10px 0;
+    }
+
+    @media screen and (max-width: 480px) {
+      .container {
+        padding: 20px;
+        border-radius: 12px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Smart Coin</h1>
+
+    <input type="text" id="username" placeholder="Foydalanuvchi nomi">
+    <input type="password" id="password" placeholder="Parol">
+
+    <select id="role">
+      <option value="" disabled selected>Rolingizni tanlang</option>
+      <option value="superadmin">Superadmin</option>
+      <option value="teacher">O‘qituvchi</option>
+      <option value="student">O‘quvchi</option>
+    </select>
+
+    <select id="studentTeacherId"></select>
+
+    <button onclick="login()">Kirish</button>
+    <div class="small-text">Yangi foydalanuvchimisiz?</div>
+    <button onclick="register()">Ro‘yxatdan o‘tish</button>
+  </div>
+
+  <script>
+    const roleSelect = document.getElementById("role");
+    const teacherDropdown = document.getElementById("studentTeacherId");
+
+    function populateTeacherIds() {
+      teacherDropdown.innerHTML = `<option disabled selected>O‘qituvchingiz ID sini tanlang</option>`;
+      for (let i = 1; i <= 20; i++) {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = `ID ${i}`;
+        teacherDropdown.appendChild(option);
+      }
+    }
+
+    roleSelect.addEventListener("change", (e) => {
+      const role = e.target.value;
+      if (role === "student") {
+        teacherDropdown.style.display = "block";
+        populateTeacherIds();
+      } else {
+        teacherDropdown.style.display = "none";
+      }
+    });
+
+    async function login() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!username || !password) return alert("Maydonlarni to‘ldiring");
+
+      const res = await fetch("http://localhost:3000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+      if (!res.ok) return alert(data.msg || "Login xatoligi");
+
+      localStorage.setItem("user", JSON.stringify(data));
+
+      if (data.role === "superadmin") {
+        window.location.href = "superadmin-dashboard.html";
+      } else if (data.role === "teacher") {
+        window.location.href = "teacher-dashboard.html";
+      } else if (data.role === "student") {
+        window.location.href = "student-dashboard.html";
+      }
+    }
+
+    async function register() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const role = document.getElementById("role").value;
+
+      if (!username || !password || !role) {
+        return alert("Barcha maydonlarni to‘ldiring");
+      }
+
+      let body = { username, password, role };
+
+      if (role === "student") {
+        const teacherId = parseInt(teacherDropdown.value);
+        if (!teacherId) return alert("O‘qituvchi ID ni tanlang");
+        body.teacherId = teacherId;
+      }
+
+      const res = await fetch("http://localhost:3000/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+      alert(data.msg);
+    }
+  </script>
+</body>
+</html>
